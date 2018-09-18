@@ -1,0 +1,40 @@
+What was the hottest day in our data set? Where was that?  134 degrees F, zip 94063
+
+SELECT 
+	zip, MAX(maxtemperaturef) AS max_temp
+FROM 
+	weather
+GROUP BY
+	zip
+ORDER BY
+	max_temp
+	
+
+How many trips started at each station?  (query has answers)
+
+SELECT
+	start_station, COUNT(trip_id)
+FROM
+	trips
+GROUP BY
+	start_station
+
+
+What's the shortest trip that happened?  60 (I assume that's seconds)
+This is much better than just selecting duration and then showing by ascending order.
+
+SELECT
+	MIN(duration)
+FROM
+	trips
+
+
+
+What is the average trip duration, by end station?  Again, see query.
+
+SELECT
+	end_station, AVG(duration)
+FROM
+	trips
+GROUP BY
+	end_station
