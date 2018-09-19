@@ -1,0 +1,110 @@
+1. What are the three longest trips on rainy days?
+So, it turns out that there are some trips spanning several rainy days.  I had to figure out how to get a unique trip_id, which I did.  If you just run a JOIN on duration and weather (rain), you actually get back the same exact trip 3 times as your answer.
+
+WITH unq AS 
+(
+	SELECT		trip_id,
+			MAX(duration) AS dur
+	FROM		trips
+	GROUP BY	trip_id
+)
+	
+SELECT	unq.trip_id,
+	unq.dur,
+	COUNT(wth.precipitationin)
+
+FROM 	unq
+
+JOIN	trips
+ON	unq.trip_id = trips.trip_id
+JOIN	weather AS wth
+ON	trips.zip_code = wth.zip
+WHERE 	wth.precipitationin > 0
+
+GROUP BY unq.trip_id, unq.dur
+ORDER BY dur DESC	
+LIMIT 10
+
+
+2. Which station is full most often?  Looks like Santa Clara at Almaden.
+
+WITH nope AS
+-- count when docks_available = 0, meaning station is full;
+(
+	SELECT		station_id,
+			COUNT(docks_available) AS unavail
+	FROM		status
+	WHERE		docks_available = 0
+	GROUP BY 	station_id
+)
+SELECT		nope.unavail,
+		stations.name
+FROM		nope
+
+-- do joins to translate station_id to actual station names
+JOIN		status
+ON		nope.station_id = status.station_id
+JOIN		stations
+ON		status.station_id = stations.station_id
+GROUP BY 	stations.name, nope.unavail
+ORDER BY 	nope.unavail DESC
+LIMIT 10
+
+
+3. Return a list of stations with a count of number of trips starting at that station but 
+ordered by dock count.
+
+WITH trp AS
+(
+	SELECT	COUNT(trip_id) AS cnt, 
+		start_station
+	FROM	trips
+	GROUP BY start_station
+)
+SELECT	stations.dockcount AS "DOCKS",
+	trp.cnt AS "TRIP COUNT",
+	trips.start_station AS "STARTING STATION"
+FROM	trp
+JOIN	trips
+ON	trp.start_station = trips.start_station
+
+-- uncomment below if you want to include stations without
+-- docks (and obviously comment out JOIN...)
+--LEFT JOIN	stations
+JOIN	stations
+ON	trips.start_station = stations.name
+
+GROUP BY trips.start_station, trp.cnt, stations.dockcount
+ORDER BY stations.dockcount DESC
+LIMIT 100
+
+
+4. (Challenge) What's the length of the longest trip for each day it rains anywhere?
+
+WITH wth AS
+(
+	SELECT	wth.date,
+		COUNT(precipitationin) AS any_rn
+	FROM	weather AS wth
+	WHERE 	wth.precipitationin > 0
+	GROUP BY
+		wth.date
+),
+
+trp AS
+(
+	SELECT	MAX(duration) AS dur,
+		start_date
+	FROM	trips
+	GROUP BY
+		start_date
+)
+
+SELECT  wth.date, MAX(trp.dur) AS max_dur
+FROM	wth
+JOIN	trp
+ON	date(wth.date) = date(start_date)
+GROUP BY
+	wth.date
+ORDER BY
+	max_dur DESC
